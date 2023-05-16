@@ -11,6 +11,9 @@ part 'table_event.dart';
 
 part 'table_state.dart';
 
+const _uri = 'ws://10.0.2.2:8080';
+// const _uri = 'ws://localhost:8080';
+
 class TableBloc extends Bloc<TableEvent, TableState> {
   TableBloc() : super(TableState(values: HashMap())) {
     on<ConnectEvent>(_connect);
@@ -37,7 +40,7 @@ class TableBloc extends Bloc<TableEvent, TableState> {
     );
 
     try {
-      final wsUrl = Uri.parse('ws://10.0.2.2:8080');
+      final wsUrl = Uri.parse(_uri);
       final channel = _channel = WebSocketChannel.connect(wsUrl);
 
       emit(
