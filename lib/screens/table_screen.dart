@@ -82,9 +82,10 @@ class _TableScreenState extends State<TableScreen> {
                             _horItemCount,
                             (innerIndex) {
                               final cellID = '$outerIndex $innerIndex';
+                              final value = state.values[cellID];
 
                               return EditableTableCell(
-                                value: state.values[cellID],
+                                value: value,
                                 onChanged: (v) {
                                   bloc.add(
                                     EditCellEvent(

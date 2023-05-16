@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:online_sheets/dto/cell_event_dto.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 part 'table_event.dart';
@@ -14,10 +16,13 @@ class TableBloc extends Bloc<TableEvent, TableState> {
     on<ConnectEvent>(_connect);
     on<BlockedCellClickedEvent>(_showBlockedCellMsg);
     on<EditCellEvent>(_editCell);
+
+    on<_UpdateCellEvent>(_updateCell);
   }
 
   WebSocketChannel? _channel;
   StreamSubscription? _channelSub;
+  final _jsonCodec = const JsonCodec();
 
   void dispose() {
     _channelSub?.cancel();
@@ -33,7 +38,6 @@ class TableBloc extends Bloc<TableEvent, TableState> {
 
     try {
       final wsUrl = Uri.parse('ws://10.0.2.2:8080');
-      throw 1;
       final channel = _channel = WebSocketChannel.connect(wsUrl);
 
       emit(
@@ -43,7 +47,15 @@ class TableBloc extends Bloc<TableEvent, TableState> {
       );
 
       _channelSub = channel.stream.listen((message) {
-        // TODO:
+        final jsonData = _jsonCodec.decode(message);
+        final dto = CellEventDTO.fromJson(jsonData);
+
+        add(
+          _UpdateCellEvent(
+            cellID: dto.cellID,
+            value: dto.value,
+          ),
+        );
       });
     } catch (e) {
       emit(
@@ -57,7 +69,8 @@ class TableBloc extends Bloc<TableEvent, TableState> {
     }
   }
 
-  void _showBlockedCellMsg(BlockedCellClickedEvent event, Emitter<TableState> emit) {
+  void _showBlockedCellMsg(
+      BlockedCellClickedEvent event, Emitter<TableState> emit) {
     emit(
       state.copyWith(
         error: 'Редактирование невозможно без наличия соединения',
@@ -82,8 +95,23 @@ class TableBloc extends Bloc<TableEvent, TableState> {
       return;
     }
 
-    channel.sink.add(event.toString());
+    final dto = CellEventDTO(
+      cellID: event.cellID,
+      value: event.value,
+    );
 
+    final jsonData = _jsonCodec.encode(dto.toJson());
+
+    channel.sink.add(jsonData);
+
+    emit(
+      state.copyWith(
+        values: HashMap.of(state.values)..[event.cellID] = event.value,
+      ),
+    );
+  }
+
+  void _updateCell(_UpdateCellEvent event, Emitter<TableState> emit) {
     emit(
       state.copyWith(
         values: HashMap.of(state.values)..[event.cellID] = event.value,
