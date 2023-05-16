@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:online_sheets/screens/screens.dart';
 
 import 'blocs/blocs.dart';
+import 'screens/screens.dart';
 
 void main() {
   runApp(const App());

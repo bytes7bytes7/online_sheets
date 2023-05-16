@@ -1,1 +1,1 @@
-export 'custom_table_cell.dart';
+export 'editable_table_cell.dart';

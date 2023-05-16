@@ -11,6 +11,10 @@ class ConnectEvent extends TableEvent {
   const ConnectEvent();
 }
 
+class BlockedCellClickedEvent extends TableEvent {
+  const BlockedCellClickedEvent();
+}
+
 class EditCellEvent extends TableEvent {
   const EditCellEvent({
     required this.cellID,

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../blocs/table/table_bloc.dart';
+import '../widgets/widgets.dart';
 
 const _horItemCount = 3;
 const _verItemCount = 3;
-const _cellHeight = 40.0;
 
 class TableScreen extends StatefulWidget {
   const TableScreen({super.key});
@@ -25,76 +25,86 @@ class _TableScreenState extends State<TableScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
     final bloc = context.read<TableBloc>();
 
     return GestureDetector(
       onTap: () {
         FocusScope.of(context).requestFocus(_focus);
       },
-      child: BlocBuilder<TableBloc, TableState>(
+      child: BlocConsumer<TableBloc, TableState>(
+        listener: (context, state) {
+          if (state.error.isNotEmpty) {
+            scaffoldMessenger.showSnackBar(
+              SnackBar(
+                content: Text(state.error),
+              ),
+            );
+          }
+        },
         builder: (context, state) {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Online Sheets'),
+              actions: [
+                (state.connection == ConnectionStatus.connecting)
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                          ),
+                          child: CircularProgressIndicator(
+                            color: theme.colorScheme.onBackground,
+                          ),
+                        ),
+                      )
+                    : state.connection == ConnectionStatus.noConnection
+                        ? IconButton(
+                            onPressed: () => bloc.add(const ConnectEvent()),
+                            icon: const Icon(Icons.refresh),
+                          )
+                        : const SizedBox.shrink(),
+              ],
             ),
-            body: SafeArea(
-              child: Table(
-                border: TableBorder.all(),
-                children: List.generate(
-                  _verItemCount,
-                  (outerIndex) {
-                    return TableRow(
-                      children: List.generate(
-                        _horItemCount,
-                        (innerIndex) {
-                          final cellID = '$outerIndex $innerIndex';
+            body: GestureDetector(
+              onTap: () => bloc.add(const BlockedCellClickedEvent()),
+              child: AbsorbPointer(
+                absorbing: state.connection != ConnectionStatus.connected,
+                child: SafeArea(
+                  child: Table(
+                    border: TableBorder.all(),
+                    children: List.generate(
+                      _verItemCount,
+                      (outerIndex) {
+                        return TableRow(
+                          children: List.generate(
+                            _horItemCount,
+                            (innerIndex) {
+                              final cellID = '$outerIndex $innerIndex';
 
-                          return EditableTableCell(
-                            value: state.values[cellID],
-                            onChanged: (v) {
-                              bloc.add(
-                                EditCellEvent(
-                                  cellID: cellID,
-                                  value: v,
-                                ),
+                              return EditableTableCell(
+                                value: state.values[cellID],
+                                onChanged: (v) {
+                                  bloc.add(
+                                    EditCellEvent(
+                                      cellID: cellID,
+                                      value: v,
+                                    ),
+                                  );
+                                },
                               );
                             },
-                          );
-                        },
-                      ),
-                    );
-                  },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ),
               ),
             ),
           );
         },
-      ),
-    );
-  }
-}
-
-class EditableTableCell extends StatelessWidget {
-  const EditableTableCell({
-    super.key,
-    required this.onChanged,
-    String? value,
-  }) : value = value ?? '';
-
-  final void Function(String) onChanged;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return TableCell(
-      child: SizedBox(
-        height: _cellHeight,
-        child: Center(
-          child: TextFormField(
-            initialValue: value,
-            onChanged: onChanged,
-          ),
-        ),
       ),
     );
   }
